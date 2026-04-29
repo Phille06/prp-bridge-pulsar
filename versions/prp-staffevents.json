@@ -1,13 +1,5 @@
 {
-  "version": "1.0.1",
-  "changes": [
-    "Added accent color configuration for the UI."
-  ],
-  "filesAffected": [
-    "editable/cl_ui.lua",
-    "client/main.lua",
-    "fxmanifest.lua",
-    "ui/dist/assets/index.css",
-    "ui/dist/assets/index.js"
-  ]
+  "version": "1.0.0",
+  "changes": [],
+  "filesAffected": []
 }

@@ -129,15 +129,5 @@
     "FAILED_TO_REMOVE_CASE_FROM_INVENTORY_ERROR": "Failed to remove case from inventory.",
     "NO_CACHED_WINNINGS_FOUND_ERROR": "No cached winnings found.",
     "CASE_OPENING_SPAM_ERROR": "Don't spam the case opening, please wait a moment before trying again.",
-    "CASE_OPENING_ITEM_ERROR": "Unable to open case - error: %s",
-
-    "ui": {
-        "cancel": "Cancel",
-        "yes": "Yes",
-        "time_left": "TIME LEFT",
-        "open_case": "OPEN CASE",
-        "press": "Press",
-        "to_close": "To Close",
-        "to_open": "To Open"
-    }
+    "CASE_OPENING_ITEM_ERROR": "Unable to open case - error: %s"
 }

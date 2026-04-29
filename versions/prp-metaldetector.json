@@ -1,10 +1,5 @@
 {
-  "version": "1.0.1",
-  "changes": [
-      "Fixed occasional treasure chest output issues"
-  ],
-  "filesAffected": [
-      "config/server.lua",
-      "server/items.lua"
-  ]
+  "version": "1.0.0",
+  "changes": [],
+  "filesAffected": []
 }

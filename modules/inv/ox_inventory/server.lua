@@ -1,6 +1,6 @@
 local inv = {}
 
-local playerInventories = {} ---@type table<string, table<{ name: string, count: number, metaData: table?, slot: number }>>
+local playerInventories = {} ---@type table<string, table<{ name: string, count: number, metadata: table?, slot: number }>>
 
 local ox_inventory = exports.ox_inventory
 local items = ox_inventory:Items()
@@ -12,7 +12,7 @@ function inv.getRegisteredItems(src)
 end
 
 ---@param inventoryId string|number
----@return table<{ name: string, count: number, metaData: table?, slot: number }>
+---@return table<{ name: string, count: number, metadata: table?, slot: number }>
 function inv.getInventoryItems(inventoryId)
     local rawItems = ox_inventory:GetInventoryItems(inventoryId)
     if not rawItems then
@@ -45,7 +45,7 @@ function inv.createTemporaryStash(data)
     local formattedItems = {}
 
     for _, item in pairs(data.items or {}) do
-        formattedItems[#formattedItems + 1] = { item.name, item.count, item.metaData or {} }
+        formattedItems[#formattedItems + 1] = { item.name, item.count, item.metadata or {} }
     end
 
     return ox_inventory:CreateTemporaryStash({
@@ -62,7 +62,7 @@ function inv.createStash(data)
         data.coords or nil)
 
     for _, item in pairs(data.items or {}) do
-        inv.giveItem(data.id, item.name, item.count, item.metaData or {})
+        inv.giveItem(data.id, item.name, item.count, item.metadata or {})
     end
 end
 
@@ -120,7 +120,7 @@ end
 ---@param slot number|nil
 ---@return boolean, InvRemoveItemResp
 function inv.removeItem(inventoryId, itemName, count, metadata, slot)
-    return ox_inventory:RemoveItem(inventoryId, itemName, count, metadata, slot)
+    return ox_inventory:RemoveItem(inventoryId, itemName, count, metadata or {}, slot)
 end
 
 ---@param itemName string
@@ -141,7 +141,7 @@ function inv.getItemData(itemName)
 end
 
 ---@param prefix string
----@param items table<{ name: string, count: number, metaData: table? }>
+---@param items table<{ name: string, count: number, metadata: table? }>
 ---@param coords vector3
 ---@param slots number?
 ---@param maxWeight number?
@@ -151,14 +151,14 @@ function inv.createCustomDrop(prefix, items, coords, slots, maxWeight, instance,
     local formattedItems = {}
 
     for _, item in pairs(items) do
-        formattedItems[#formattedItems + 1] = { item.name, item.count, item.metaData or {} }
+        formattedItems[#formattedItems + 1] = { item.name, item.count, item.metadata or {} }
     end
 
     return ox_inventory:CustomDrop(prefix, formattedItems, coords, slots, maxWeight * 1000, instance, model)
 end
 
 ---@param src number | string
----@param loadout table<{ name: string, count: number, metaData: table? }>
+---@param loadout table<{ name: string, count: number, metadata: table? }>
 ---@param excludedItems table<string, boolean>
 function inv.giveLoadoutItems(src, loadout, excludedItems)
     local identifier = bridge.fw.getIdentifier(src)
@@ -171,21 +171,21 @@ function inv.giveLoadoutItems(src, loadout, excludedItems)
 
     for _, item in pairs(playerItems) do
         if not excludedItems[item.name] then
-            ox_inventory:RemoveItem(src, item.name, item.count, item.metaData, item.slot)
+            ox_inventory:RemoveItem(src, item.name, item.count, item.metadata, item.slot)
 
             currentLoadout[#currentLoadout + 1] = item
         end
     end
 
     for _, item in pairs(loadout) do
-        ox_inventory:AddItem(src, item.name, item.count, item.metaData)
+        ox_inventory:AddItem(src, item.name, item.count, item.metadata)
     end
 
     playerInventories[identifier] = currentLoadout
 end
 
 ---@param src number | string
----@param loadout table<{ name: string, count: number, metaData: table? }>
+---@param loadout table<{ name: string, count: number, metadata: table? }>
 function inv.returnItems(src, loadout)
     local identifier = bridge.fw.getIdentifier(src)
     if not identifier then return lib.print.debug('No identifier for source:', src) end
@@ -193,11 +193,15 @@ function inv.returnItems(src, loadout)
     local storedItems = playerInventories[identifier]
     if not storedItems then return lib.print.debug('No stored items for identifier:', identifier) end
 
-    ox_inventory:ClearInventory(src)
+    for _, item in pairs(loadout) do
+        lib.print.debug('Removing loadout item from source:', src, 'item:', item)
+        ox_inventory:RemoveItem(src, item.name, item.count, nil, nil, nil, true)
+    end
 
     Wait(0)
     for _, item in pairs(storedItems) do
-        ox_inventory:AddItem(src, item.name, item.count, item.metaData or {})
+        lib.print.debug('Restoring item to source:', src, 'item:', item)
+        ox_inventory:AddItem(src, item.name, item.count, item.metadata or {})
     end
 
     playerInventories[identifier] = nil
@@ -258,15 +262,15 @@ end
 
 ---@param inventoryId string|number
 ---@param slot number
----@param metaData table
+---@param metadata table
 ---@return boolean
-function inv.setItemMetaData(inventoryId, slot, metaData)
+function inv.setItemMetaData(inventoryId, slot, metadata)
     local item = ox_inventory:GetSlot(inventoryId, slot)
     if not item then
         return false
     end
 
-    ox_inventory:SetMetadata(inventoryId, slot, metaData)
+    ox_inventory:SetMetadata(inventoryId, slot, metadata)
     return true
 end
 
@@ -289,16 +293,16 @@ end
 
 ---@param inventoryId string|number
 ---@param slot number
----@param metaData table<string, any>
+---@param metadata table<string, any>
 ---@return boolean
-function inv.setItemMetaDatasByKey(inventoryId, slot, metaData)
+function inv.setItemMetaDatasByKey(inventoryId, slot, metadata)
     local item = ox_inventory:GetSlot(inventoryId, slot)
     if not item then
         return false
     end
 
     local newMeta = lib.table.deepclone(item.metadata or {})
-    for k, v in pairs(metaData) do
+    for k, v in pairs(metadata) do
         newMeta[k] = v
     end
 
@@ -326,10 +330,10 @@ end
 ---@param inventoryId string | number
 ---@param item string
 ---@param count number
----@param metaData table?
+---@param metadata table?
 ---@return boolean
-function inv.canCarryItem(inventoryId, item, count, metaData)
-    return ox_inventory:CanCarryItem(inventoryId, item, count, metaData)
+function inv.canCarryItem(inventoryId, item, count, metadata)
+    return ox_inventory:CanCarryItem(inventoryId, item, count, metadata)
 end
 
 ---@param vehType InvVehStashType

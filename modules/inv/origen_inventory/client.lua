@@ -61,10 +61,6 @@ function inv.getItemImageUrl(itemName)
     return ("https://cfx-nui-origen_inventory/html/images/%s.png"):format(itemName)
 end
 
-function inv.disarm()
-    TriggerEvent('ox_inventory:disarm', true)
-end
-
 if bridge.name == bridge.currentResource then
     RegisterNetEvent("prp-bridge:origen_inv:openStash", function(inventoryId)
         exports.origen_inventory:openInventory("stash", inventoryId)

@@ -10,9 +10,9 @@ function phone.sendMessage(src, from, message)
     end
 
     local result = exports.yseries:SendMessageTo(
-        tostring(from):gsub("-", ""),
+        tostring(from),
         phoneNumber,
-        message or ''
+        message
     )
 
     return result
@@ -28,17 +28,15 @@ function phone.sendCoords(src, from, coords)
     end
 
     local result = exports.yseries:SendMessageTo(
-        tostring(from):gsub("-", ""),
+        tostring(from),
         phoneNumber,
-        message or 'Location',
-        json.encode({
-            {
-                location = {
-                    x = coords.x,
-                    y = coords.y
-                }
+        message,
+        {
+            location = {
+                x = coords.x,
+                y = coords.y
             }
-        })
+        }
     )
 
     return result
@@ -48,19 +46,13 @@ end
 ---@param title string
 ---@param content? string
 function phone.sendNotification(src, title, content)
-    local phoneNumber = exports.yseries:GetPhoneNumberBySourceId(src)
-    if not phoneNumber then
-        return false
-    end
-
     exports.yseries:SendNotification({
-            app = 'email',
+            app = 'messages',
             title = title,
             text = content,
-            timeout = 5000
         },
-        'phoneNumber',
-        phoneNumber
+        'source',
+        src
     )
 end
 

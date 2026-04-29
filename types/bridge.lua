@@ -182,9 +182,6 @@ function bridge.inv.getItemCount(itemName) end
 ---@return string
 function bridge.inv.getItemImageUrl(itemName) end
 
----**`client`** Disarms the player, removing the current weapon from their hands.
-function bridge.inv.disarm() end
-
 ---@param src? number
 ---@return table<string, table> --Returns a table of all registered items, where the key is the item name and the value is the item data table.
 function bridge.inv.getRegisteredItems(src) end

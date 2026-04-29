@@ -197,7 +197,7 @@ end
 ---@param duty boolean? do they need to be on duty
 ---@return boolean
 function fw.hasJob(job, grade, duty)
-    if not PlayerData or not PlayerData.job then
+    if not PlayerData then
         return false
     end
 

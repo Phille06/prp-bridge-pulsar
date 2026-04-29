@@ -123,6 +123,18 @@ RegisterNetEvent("prp-bridge:client:toggleGroupInviting", function(invitingState
     })
 end)
 
+-- exports.ox_target:addGlobalPlayer({
+--     {
+--         name = "group-menu",
+--         label = locale("GROUPS"),
+--         icon = "fa-solid fa-people-group",
+--         distance = 2.0,
+--         onSelect = function()
+--             TriggerServerEvent("prp-bridge:server:requestGroupData")
+--         end,
+--     }
+-- })
+
 RegisterNetEvent("prp-bridge:client:receiveGroupInvite", function(inviteData)
     local alert = bridge.fw.confirmDialog(locale("GROUP_INVITE"), locale("GROUP_INVITE_FROM", inviteData.inviterName))
     if alert == "confirm" then

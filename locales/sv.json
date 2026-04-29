@@ -105,14 +105,5 @@
     "COMMAND_REMOVE_WHITELIST_SUCCESS": "Whitelist borttagen: %s från spelare: %s [%s]",
 
     "CANCEL": "Avbryt",
-    "CONFIRM": "Bekräfta",
-    "ui": {
-        "cancel": "Avbryt",
-        "yes": "Ja",
-        "time_left": "TID KVAR",
-        "open_case": "ÖPPNA LÅDA",
-        "press": "Tryck på",
-        "to_close": "För att stänga",
-        "to_open": "För att öppna"
-    }
+    "CONFIRM": "Bekräfta"
 }

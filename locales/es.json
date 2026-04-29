@@ -105,14 +105,5 @@
     "COMMAND_REMOVE_WHITELIST_SUCCESS": "Whitelist eliminada: %s del jugador: %s [%s]",
 
     "CANCEL": "Cancelar",
-    "CONFIRM": "Confirmar",
-    "ui": {
-        "cancel": "Cancelar",
-        "yes": "Sí",
-        "time_left": "TIEMPO RESTANTE",
-        "open_case": "ABRIR CAJA",
-        "press": "Presiona",
-        "to_close": "Para Cerrar",
-        "to_open": "Para Abrir"
-    }
+    "CONFIRM": "Confirmar"
 }

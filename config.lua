@@ -14,9 +14,10 @@ BridgeConfig.Debug = true
         - qb-core
         - es_extended
         - nd_core
+        - pulsar-core
 ]]
 ---@type AvailableFrameworks
-BridgeConfig.FrameWork = "qbx_core"
+BridgeConfig.FrameWork = "pulsar-core"
 
 --[[
     Available inventories
@@ -36,11 +37,10 @@ BridgeConfig.Inventory = "ox_inventory"
         - npwd
         - roadphone
         - 17mov_phone
-        - gksphone
-        - meteo-phone
+        - pulsar-phone
 ]]
 ---@type AvailablePhones
-BridgeConfig.Phone = "lb-phone"
+BridgeConfig.Phone = "pulsar-phone"
 
 --[[
     Available targets
@@ -55,16 +55,17 @@ BridgeConfig.Target = "ox_target"
     Available Medical systems:
         - qbx_medical
         - esx_ambulancejob
-        - wasabi_ambulance (supports v1 and v2)
+        - wasabi_ambulance
         - ars_ambulancejob
         - osp_ambulance
         - p-ambulancejob
         - nd_ambulance
         - qb-ambulancejob
         - randol_medical
+        - pulsar-damage
 ]]
 ---@type AvailableMedicals
-BridgeConfig.Medical = 'qbx_medical'
+BridgeConfig.Medical = 'pulsar-damage'
 
 --[[
     Available Dispatch Resources:
@@ -77,9 +78,10 @@ BridgeConfig.Medical = 'qbx_medical'
         - aty_dispatch
         - codem-dispatch
         - core_dispatch
+        - pulsar-robbery
 ]]
 ---@type AvailableDispatches
-BridgeConfig.Dispatch = "ps-dispatch"
+BridgeConfig.Dispatch = "pulsar-robbery"
 
 --[[
     AvailableVehicleKeys Resources:
@@ -92,11 +94,10 @@ BridgeConfig.Dispatch = "ps-dispatch"
         - vehicles_keys
         - wasabi_carlock
         - nd_core
-        - mrnewbvehiclekeys
-        - Renewed-Vehiclekeys
+        - pulsar-vehicles
 ]]
 ---@type AvailableVehicleKeys
-BridgeConfig.VehicleKeys = "qbx_vehiclekeys"
+BridgeConfig.VehicleKeys = "pulsar-vehicles"
 
 --[[
     AvailableVehicleFuel Resources:
@@ -105,16 +106,21 @@ BridgeConfig.VehicleKeys = "qbx_vehiclekeys"
         - cdn-fuel
         - lc_fuel
         - qb-fuel
-        - Renewed-Fuel
+        - pulsar-fuel
 ]]
 ---@type AvailableVehicleFuel
-BridgeConfig.VehicleFuel = "ox_fuel"
+BridgeConfig.VehicleFuel = "pulsar-fuel"
 
+--[[
+    AvailableMinigames Resources:
+        - prp-minigames
+        - pulsar-games -- THIS HAS NOT BEEN TESTED, IF IT DOES NOT WORK LMK
+]]
 ---@type AvailableMinigames
 BridgeConfig.Minigames = "prp-minigames"
 
 ---@type { CommandEnabled: boolean, CommandName: string }
-BridgeConfig.Group = {
+BridgeConfig.Group = { -- TODO Make this work with Phone Labor App and sync
     CommandEnabled = true,
     CommandName = "group",
 }

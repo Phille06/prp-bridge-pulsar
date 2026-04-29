@@ -429,9 +429,7 @@ function CreateUniqueue(name, type, requiredPolicePower, maxConcurrentTasks, coo
             QueuePrint(private.name, "^5Max concurrent tasks reached")
         end
 
-        if QueueDevMode then
-            QueuePrint(private.name, "^6Current Tasks:^7 " .. json.encode(private.executingTasks, { indent = true }))
-        end
+        QueuePrint(private.name, "^6Current Tasks:^7 " .. json.encode(private.executingTasks, { indent = true }))
         QueuePrint(private.name, "^6Free police strength: " .. tostring(GetFreePolicePower()) .. "^7")
 
         private.unlock()

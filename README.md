@@ -1,5 +1,7 @@
 # prp-bridge
 
+# For Framework Pulsar, i did not convert all functions via ox_lib, since this is a conversion of my old prp-bridge i bridged ox_lib due to the components. Look at my github for that. Soon there will be a branch to use the labor groups for instead of the /group command
+
 A framework bridge for FiveM resources in the Prodigy Studios ecosystem. Instead of writing support for multiple frameworks, inventories, or phone systems directly in each script, resources use prp-bridge to get a unified API that is independent of the underlying tech stack.
 
 ## Dependencies
@@ -28,12 +30,12 @@ BridgeConfig = {
 
     -- External systems
     Inventory   = "ox_inventory",    -- ox_inventory | origen_inventory | tgiann_inventory
-    Phone       = "lb-phone",        -- lb-phone | yseries | yphone | yflip | npwd | roadphone | 17mov_phone | gksphone
+    Phone       = "lb-phone",        -- lb-phone | yseries | yphone | yflip | npwd | roadphone | 17mov_phone
     Target      = "ox_target",       -- ox_target | qb-target | sleepless_interact
     Medical     = "qbx_medical",     -- qbx_medical | esx_ambulancejob | nd_ambulance
     Dispatch    = "ps-dispatch",     -- ps-dispatch | origen_police | cd_dispatch | rcore_dispatch
-    VehicleKeys = "qbx_vehiclekeys", -- qbx_vehiclekeys | cd_garage | mVehicle | okokGarage | wasabi_carlock | mrnewbvehiclekeys | Renewed-Vehiclekeys | ...
-    VehicleFuel = "ox_fuel",         -- ox_fuel | LegacyFuel | cdn-fuel | lc_fuel | qb-fuel | Renewed-Fuel
+    VehicleKeys = "qbx_vehiclekeys", -- qbx_vehiclekeys | cd_garage | mVehicle | okokGarage | wasabi_carlock | ...
+    VehicleFuel = "ox_fuel",         -- ox_fuel | LegacyFuel | cdn-fuel | lc_fuel | qb-fuel
     Minigames   = "prp-minigames",
 
     -- Group command

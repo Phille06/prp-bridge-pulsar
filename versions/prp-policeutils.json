@@ -1,12 +1,5 @@
 {
-  "version": "1.0.1",
-  "changes": [
-    "Added logging grenade usage out of the box"
-  ],
-  "filesAffected": [
-    "fxmanifest.lua",
-    "server/config.lua",
-    "server/flashbangS.lua",
-    "server/smokegrenadeS.lua"
-  ]
+  "version": "1.0.0",
+  "changes": [],
+  "filesAffected": []
 }

@@ -96,17 +96,12 @@ local function propPlacer(model, forceGround, allowedMaterials, maxDistance)
 
                 if IsControlJustPressed(0, 38) or IsDisabledControlJustPressed(0, 38) then -- e
                     if #(GetEntityCoords(placingEntity, false) - GetEntityCoords(cache.ped, false)) <= maxDistance then
+                        -- Make sure its on the ground before we grab its final coords
                         if forceGround then
-                            local foundGround, groundZ = GetGroundZFor_3dCoord(endCoords.x, endCoords.y, endCoords.z + 1.0, false)
-                            if not foundGround then
-                                lib.print.error("Unable to find ground z for prop placer on model", model, " using raycast z instead", endCoords.z)
-                            end
-                            
-                            finalCoords = foundGround and vector3(endCoords.x, endCoords.y, groundZ) or endCoords
-                        else
-                            finalCoords = endCoords
+                            PlaceObjectOnGroundProperly(placingEntity)
                         end
-
+                        
+                        finalCoords = GetEntityCoords(placingEntity, false)
                         finalRotation = GetEntityHeading(placingEntity)
                         isPlacingProp = false
                     else
@@ -133,17 +128,10 @@ local function propPlacer(model, forceGround, allowedMaterials, maxDistance)
     while isPlacingProp do
         hitEntity, entityHit, endCoords, _, materialHash = lib.raycast.fromCamera(1 | 8 | 16, placingEntity)
         if hitEntity and hitEntity > 0 and entityHit ~= cache.ped and not allowedMaterials or allowedMaterials?[materialHash] then
-            SetEntityCoords(placingEntity, endCoords.x, endCoords.y, endCoords.z, false, false, false, false)
-            
+            SetEntityCoordsNoOffset(placingEntity, endCoords.x, endCoords.y, endCoords.z, false, false, false)
             if forceGround then
-                -- preserve original heading as force on ground updates entire rotation
-                local heading = GetEntityHeading(placingEntity)
-                Wait(0)
                 PlaceObjectOnGroundProperly(placingEntity)
-                SetEntityHeading(placingEntity, heading)
             end
-            
-            lib.print.info("prop data", forceGround, endCoords)
         end
 
         Wait(0)

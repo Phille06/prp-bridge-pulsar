@@ -1,13 +1,5 @@
 {
-  "version": "1.0.2",
-  "changes": [
-      "Fixed milking job breaking when you have more than 7 milk buckets to collect",
-      "Moved sell shop code to own file and unescrowed it"
-  ],
-  "filesAffected": [
-      "server/activities/animalActivities.lua",
-      "server/openworld.lua",
-      "server/shop.lua",
-      "server/main.lua"
-  ]
+  "version": "1.0.0",
+  "changes": [],
+  "filesAffected": []
 }

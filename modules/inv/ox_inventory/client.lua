@@ -13,7 +13,6 @@ end
 ---@return number | nil
 function inv.findItemSlot(itemName, minDurabilityAmount)
     local items = exports.ox_inventory:Search('slots', itemName)
-    if not items or type(items) ~= "table" then return nil end
     for i=1, #items do
         local item = items[i]
         if item.name == itemName then
@@ -59,10 +58,6 @@ end
 ---@return string
 function inv.getItemImageUrl(itemName)
     return ("https://cfx-nui-ox_inventory/web/images/%s.png"):format(itemName)
-end
-
-function inv.disarm()
-    TriggerEvent('ox_inventory:disarm', true)
 end
 
 if bridge.name == bridge.currentResource then

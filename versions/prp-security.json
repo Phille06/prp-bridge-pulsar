@@ -1,9 +1,5 @@
 {
-  "version": "1.0.1",
-  "changes": [
-        "Fixed missing device ID in server cache on device create"
-  ],
-  "filesAffected": [
-        "server/main.lua"
-  ]
+  "version": "1.0.0",
+  "changes": [],
+  "filesAffected": []
 }

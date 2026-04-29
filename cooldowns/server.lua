@@ -25,6 +25,11 @@ exports('startGlobalCooldown', startGlobalCooldown)
 local function startCooldownByIdentifier(identifier, cooldownKey, minutes, applyToAllCharacters)
     local cooldownIdentifier = ('character-%s-%s'):format(identifier, cooldownKey)
 
+    if applyToAllCharacters then
+        local source = bridge.fw.getSrcFromIdentifier(identifier)
+        cooldownIdentifier = ('player-%s-%s'):format(source, cooldownKey)
+    end
+
     if cooldowns[cooldownIdentifier] then
         lib.print.debug('Tried to start a player cooldown that already exists', identifier, cooldownKey,
             minutes,
@@ -104,18 +109,13 @@ local function cooldownsMenu(source)
     TriggerClientEvent('prp-bridge:cooldowns:openMenu', source, cooldownsMap)
 end
 
-if BridgeConfig.Cooldowns.AdminCommandEnabled then
+if BridgeConfig.Group.CommandEnabled then
     bridge.fw.registerCommand(
-        BridgeConfig.Cooldowns.AdminCommandName,
-        locale("ADMIN_COMMAND_COOLDOWN_MENU_HELP"),
-        {
-            {
-                name = 'target',
-                type = 'playerId',
-                help = 'Target player\'s server id',
-            },
-        },
-        BridgeConfig.Cooldowns.AdminCommandRestriction,
-        cooldownsMenu
-    )
+        BridgeConfig.Group.CommandName,
+        "",
+        nil,
+        nil,
+    function(src, args)
+        TriggerClientEvent("prp-bridge:client:requestGroupData", src)
+    end)
 end

@@ -288,7 +288,7 @@ function fw.getOwnedVehicleByPlate(plate, returnEmpty)
         return
     end
 
-    local vehData = lib.table.deepclone(BridgeConfig.VehicleData[vehicleModel])
+    local vehData = BridgeConfig.VehicleData[vehicleModel]
     return lib.table.merge(vehData, vehicle, false)
 end
 

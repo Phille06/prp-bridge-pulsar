@@ -1,10 +1,5 @@
 {
-  "version": "1.0.4",
-  "changes": [
-      "Added config option `SvConfig.RequireItemToRace` to disable item requirement to join a race"
-  ],
-  "filesAffected": [
-      "server/main.lua",
-      "sv_config.lua"
-  ]
+  "version": "1.0.0",
+  "changes": [],
+  "filesAffected": []
 }

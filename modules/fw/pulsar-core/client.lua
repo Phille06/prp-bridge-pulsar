@@ -1,90 +1,75 @@
-local QBCore = exports['qb-core']:GetCoreObject()
-
-local PlayerData = QBCore.Functions.GetPlayerData()
-
-RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
-    PlayerData = QBCore.Functions.GetPlayerData()
-end)
-
-RegisterNetEvent('QBCore:Player:SetPlayerData', function()
-    Wait(100)
-    PlayerData = QBCore.Functions.GetPlayerData()
-end)
-
-RegisterNetEvent('QBCore:Client:OnJobUpdate', function()
-    Wait(100)
-    PlayerData.job = QBCore.Functions.GetPlayerData().job
-end)
-
 local fw = {}
 
 ---@return number
 function fw.getStress()
-    return PlayerData?.metadata?.stress or 0
+    local s = exports['pulsar-status']:GetSingle('stress')
+    return s and s.value or 0
 end
 
 ---@return number
 function fw.getHunger()
-    return PlayerData?.metadata?.hunger or 100
+    local s = exports['pulsar-status']:GetSingle('hunger')
+    return s and s.value or 100
 end
 
 ---@return number
 function fw.getThirst()
-    return PlayerData?.metadata?.thirst or 100
+    local s = exports['pulsar-status']:GetSingle('thirst')
+    return s and s.value or 100
 end
 
 ---@param statusType string
 ---@param value number
 function fw.setStatus(statusType, value)
-    if statusType == "stress" then
-        PlayerData?.metadata?.stress = value
-    elseif statusType == "hunger" then
-        PlayerData?.metadata?.hunger = value
-    elseif statusType == "thirst" then
-        PlayerData?.metadata?.thirst = value
-    end
+    exports['pulsar-status']:Set(statusType, value)
 end
 
 function fw.applyBuff(buff, data)
-    --- Integrations with other resources
+    -- Integrations with other resources, this is needed for ie prp-drugs, but thats done in prp-drugs
 end
 
 function fw.clearBuffs()
-    --- Integrations with other resources
+    -- Integrations with other resources, this is needed for ie prp-drugs, but thats done in prp-drugs
 end
 
----@param type 'inform' | 'error' | 'success'| 'warning'
+---@param type 'inform' | 'error' | 'success' | 'warning'
 ---@param message string
 ---@param title? string
 ---@param duration? number
 function fw.notify(type, message, title, duration)
-    lib.notify({
-        type = type or "inform",
-        title = title or nil,
-        description = message or "",
-        duration = duration or 3000,
-    })
+    if type == 'error' then
+        exports['pulsar-hud']:Notification("error", message, duration or 3000)
+    elseif type == 'success' then
+        exports['pulsar-hud']:Notification("success", message, duration or 3000)
+    elseif type == 'warning' then
+        exports['pulsar-hud']:Notification("warning", message, duration or 3000)
+    else
+        exports['pulsar-hud']:Notification("info", message, duration or 3000)
+
+    end
 end
 
 ---@param text string
 ---@param options { position?: ShowTextUIPos, icon?: string | table<string>, iconColor?: string, iconAnimation?: ShowTextUIAnims, alignIcon?: "top" | "center" }
 function fw.showTextUI(text, options)
-    lib.showTextUI(text, options)
+    exports['pulsar-hud']:ActionShow('prp-bridge', text)
 end
 
 function fw.hideTextUI()
-    lib.hideTextUI()
+    exports['pulsar-hud']:ActionHide('prp-bridge')
 end
 
 ---@return boolean
 ---@return string | nil
 function fw.isTextUIOpen()
-    return lib.isTextUIOpen()
+    -- pulsar's Action component has no open-state query; return false as safe default
+    return false, nil
 end
 
 ---@param payload FWProgressBar
 ---@return boolean?
 function fw.progressBar(payload)
+    -- I have made a ox_lib bridge if you want to use that
     local options = {
         duration = payload.duration or 5000,
         label = payload.label,
@@ -94,24 +79,24 @@ function fw.progressBar(payload)
         allowCuffed = payload.allowCuffed or false,
         allowFalling = payload.allowFalling or false,
         canCancel = payload.canCancel or false,
-        disable = {}
+        disable = {
+            move = true,
+            combat = true,
+            sprint = true
+        }
     }
 
     if payload.controlDisables then
-        if payload.controlDisables.disableMovement then
-            options.disable.move = true
+        if payload.controlDisables.disableMovement == false then
+            options.disable.move = false
         end
-        if payload.controlDisables.disableCarMovement then
-            options.disable.car = true
+
+        if payload.controlDisables.disableCombat == false then
+            options.disable.combat = false
         end
-        if payload.controlDisables.disableMouse then
-            options.disable.mouse = true
-        end
-        if payload.controlDisables.disableCombat then
-            options.disable.combat = true
-        end
-        if payload.controlDisables.disableSprint then
-            options.disable.sprint = true
+
+        if payload.controlDisables.disableSprint == false then
+            options.disable.sprint = false
         end
     end
 
@@ -136,15 +121,17 @@ end
 ---@param header string
 ---@param content string
 ---@param labels? {cancel?: string, confirm?: string}
----@param timeout? number Force the window to timeout after `x` milliseconds.
+---@param timeout? number
 ---@return 'cancel'|'confirm'|nil
 function fw.confirmDialog(header, content, labels, timeout)
+    -- pulsar uses its own confirm UI; delegate to ox_lib alert as fallback
+    -- I have made a ox_lib bridge if you want to use that
     return lib.alertDialog({
-        header = header,
+        header  = header,
         content = content,
         centered = true,
-        cancel = true,
-        labels = labels or {cancel = locale("Cancel"), confirm = locale("Confirm")},
+        cancel  = true,
+        labels  = labels or { cancel = locale('Cancel'), confirm = locale('Confirm') },
     }, timeout)
 end
 
@@ -153,68 +140,49 @@ end
 ---@param options InputDialogOptionsProps[]?
 ---@return string[] | number[] | boolean[] | nil
 function fw.inputDialog(heading, rows, options)
+    -- I have made a ox_lib bridge if you want to use that
     return lib.inputDialog(heading, rows, options)
 end
 
 ---@param payload FWContextMenuProps | FWContextMenuProps[]
 function fw.contextMenu(payload)
+    -- I have made a ox_lib bridge if you want to use that
     lib.registerContext(payload)
 end
 
 ---@param contextId string
 function fw.showContext(contextId)
+    -- I have made a ox_lib bridge if you want to use that
     lib.showContext(contextId)
 end
 
+---@return boolean
 function fw.isOnDuty()
-    return PlayerData.job.onduty
+    return LocalPlayer.state.onDuty or false
 end
 
 ---@param job string
----@param grade number? do they require a minimum grade
----@param duty boolean? do they need to be on duty
----@return boolean
+---@param grade number?
+---@param duty boolean?
+---@return table | boolean
 function fw.hasJob(job, grade, duty)
-    if not PlayerData then
-        return false
-    end
-
-    local jobId = PlayerData.job.name
-    if jobId ~= job then
-        return false
-    end
-
-    if grade then
-        local gradeId = PlayerData.job.grade.level
-        if gradeId < grade then
-            return false
-        end
-    end
-
-    if duty then
-        return fw.isOnDuty()
-    end
-
-    return true
+    if not LocalPlayer.state.loggedIn then return false end
+    return exports['pulsar-jobs']:HasJob(job, nil, nil, grade, duty)
 end
 
 ---@return string?
 function fw.getIdentifier()
-    return PlayerData?.citizenid
+    local char = LocalPlayer.state.Character
+    if not char then return nil end
+    local sid = tostring(char:GetData('SID'))
+    return sid
 end
 
 ---@return string?
 function fw.getCharacterName()
-    local player = PlayerData
-    if not player then
-        return nil
-    end
-
-    if not player?.charinfo then
-        return nil
-    end
-
-    return ("%s %s"):format(player.charinfo.firstname, player.charinfo.lastname)
+    local char = LocalPlayer.state.Character
+    if not char then return nil end
+    return string.format('%s %s', char:GetData('First'), char:GetData('Last'))
 end
 
 return fw

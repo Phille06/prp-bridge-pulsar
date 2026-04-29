@@ -160,7 +160,7 @@ end
 ---@param duty boolean? do they need to be on duty
 ---@return boolean
 function fw.hasJob(job, grade, duty)
-    if not QBX.PlayerData or not QBX.PlayerData.job then
+    if not QBX.PlayerData then
         return false
     end
 

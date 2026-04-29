@@ -54,7 +54,7 @@ local function GenerateLoot(pool, itemCount, guaranteedRarities)
                     local chosenItem = getRandomItemFromList(itemsOfRarity)
 
                     if chosenItem then
-                        local itemAmt = math.random(
+                        local count = math.random(
                             chosenItem.min or 1,
                             chosenItem.max or 1
                         )
@@ -63,7 +63,7 @@ local function GenerateLoot(pool, itemCount, guaranteedRarities)
                             loot,
                             {
                                 name = chosenItem.name,
-                                count = itemAmt,
+                                count = count,
                                 metadata = chosenItem.metadata or {},
                                 rarity = rarity,
                             }
