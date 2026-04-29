@@ -799,14 +799,13 @@ RegisterNetEvent("prp-bridge:server:declineGroupInvite", function(inviteUuid, le
     bridge.fw.notify(leader.src, "error", locale("DECLINED_GROUP_INVITE"))
 end)
 
-if BridgeConfig.Group.AdminCommandName then
+if BridgeConfig.Group.CommandEnabled then
     bridge.fw.registerCommand(
-        BridgeConfig.Group.AdminCommandName,
+        BridgeConfig.Group.CommandName,
         "",
         nil,
-        BridgeConfig.Group.AdminCommandRestriction,
-        function(src, args)
-            TriggerClientEvent("prp-bridge:client:requestGroupData", src)
-        end
-    )
+        nil,
+    function(src, args)
+        TriggerClientEvent("prp-bridge:client:requestGroupData", src)
+    end)
 end
