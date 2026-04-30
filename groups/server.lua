@@ -49,8 +49,11 @@ Groups = {}
 
 local function initGroupObject(data)
     local public = {}
+    local isPulsarGroup = data.isPulsarGroup or false
+    local pulsarGroupData = data.pulsarGroupData or nil
+
     local private = {
-        uuid            = tostring(data.uuid),
+        uuid            = tostring(data.uuid or ""),
         members         = {},
         leader          = nil,
         activity        = nil,
@@ -58,6 +61,8 @@ local function initGroupObject(data)
         invites         = {},
         partyUuid       = nil,
         isLocked        = false,
+        isPulsarGroup   = isPulsarGroup,
+        pulsarGroupData = pulsarGroupData,
     }
 
     setmetatable(public, mt)
@@ -69,6 +74,9 @@ local function initGroupObject(data)
 
     ---@return string
     public.getPartyUuid = function()
+        if private.isPulsarGroup and private.pulsarGroupData then
+            return exports['pulsar-labor']:GetGroupPartyUuid(private.pulsarGroupData.Creator.ID)
+        end
         return private.partyUuid
     end
 
@@ -101,22 +109,38 @@ local function initGroupObject(data)
 
     ---@return { identifier: string, src: number | string, characterName: string } | nil
     public.getLeader = function()
-        return private.leader
+        if private.isPulsarGroup and private.pulsarGroupData then
+            return {
+                identifier    = private.pulsarGroupData.Creator.SID,
+                src           = private.pulsarGroupData.Creator.ID,
+                characterName = private.pulsarGroupData.Creator.First .. " " .. private.pulsarGroupData.Creator.Last,
+            }
+        else
+            return private.leader
+        end
     end
 
     ---@param src number | string
     ---@return boolean
     public.isSrcALeader = function(src)
-        if not private.leader then
-            return false
+        if private.isPulsarGroup and private.pulsarGroupData then
+            return tostring(private.pulsarGroupData.Creator.ID) == tostring(src)
+        else
+            if not private.leader then
+                return false
+            end
+            return tostring(private.leader.src) == tostring(src)
         end
-
-        return tostring(private.leader.src) == tostring(src)
     end
 
     ---@param src number | string
     ---@return boolean
     public.addMember = function(src)
+        if private.isPulsarGroup then
+            -- Pulsar groups handled by pulsar-labor API
+            return false
+        end
+
         ---@diagnostic disable-next-line: param-type-mismatch
         if not DoesPlayerExist(src) then
             return false
@@ -157,6 +181,11 @@ local function initGroupObject(data)
     ---@param src number | string
     ---@return boolean
     public.removeMember = function(src)
+        if private.isPulsarGroup then
+            -- Pulsar groups handled by pulsar-labor API
+            return false
+        end
+
         ---@diagnostic disable-next-line: param-type-mismatch
         if not DoesPlayerExist(src) then
             return false
@@ -185,14 +214,37 @@ local function initGroupObject(data)
     ---@return table<string, { identifier: string, src: number | string, characterName: string, isLeader: boolean, online: boolean }>
     public.getMembers = function()
         local members = {}
-        for identifier, memberData in pairs(private.members) do
-            members[identifier] = {
-                identifier    = memberData.identifier,
-                src           = memberData.src,
-                characterName = memberData.characterName,
-                isLeader      = (private.leader and private.leader.identifier == identifier) or false,
-                online        = DoesPlayerExist(memberData.src),
+
+        if private.isPulsarGroup and private.pulsarGroupData then
+            -- Creator as leader
+            members[tostring(private.pulsarGroupData.Creator.SID)] = {
+                identifier    = private.pulsarGroupData.Creator.SID,
+                src           = private.pulsarGroupData.Creator.ID,
+                characterName = private.pulsarGroupData.Creator.First .. " " .. private.pulsarGroupData.Creator.Last,
+                isLeader      = true,
+                online        = DoesPlayerExist(private.pulsarGroupData.Creator.ID),
             }
+
+            -- Members
+            for _, member in ipairs(private.pulsarGroupData.Members) do
+                members[tostring(member.SID)] = {
+                    identifier    = member.SID,
+                    src           = member.ID,
+                    characterName = member.First .. " " .. member.Last,
+                    isLeader      = false,
+                    online        = DoesPlayerExist(member.ID),
+                }
+            end
+        else
+            for identifier, memberData in pairs(private.members) do
+                members[identifier] = {
+                    identifier    = memberData.identifier,
+                    src           = memberData.src,
+                    characterName = memberData.characterName,
+                    isLeader      = (private.leader and private.leader.identifier == identifier) or false,
+                    online        = DoesPlayerExist(memberData.src),
+                }
+            end
         end
         return members
     end
@@ -209,8 +261,16 @@ local function initGroupObject(data)
     ---@return number | string[]
     public.getMembersPlayerIds = function()
         local playerIds = {}
-        for _, player in pairs(private.members) do
-            playerIds[#playerIds+1] = player.src
+
+        if private.isPulsarGroup and private.pulsarGroupData then
+            playerIds[#playerIds+1] = private.pulsarGroupData.Creator.ID
+            for _, member in ipairs(private.pulsarGroupData.Members) do
+                playerIds[#playerIds+1] = member.ID
+            end
+        else
+            for _, player in pairs(private.members) do
+                playerIds[#playerIds+1] = player.src
+            end
         end
 
         return playerIds
@@ -219,64 +279,110 @@ local function initGroupObject(data)
     ---@param src number | string
     ---@return boolean
     public.isSrcAMember = function(src)
-        for _, memberData in pairs(private.members) do
-            if tostring(memberData.src) == tostring(src) then
+        if private.isPulsarGroup and private.pulsarGroupData then
+            if tostring(private.pulsarGroupData.Creator.ID) == tostring(src) then
                 return true
             end
+            for _, member in ipairs(private.pulsarGroupData.Members) do
+                if tostring(member.ID) == tostring(src) then
+                    return true
+                end
+            end
+            return false
+        else
+            for _, memberData in pairs(private.members) do
+                if tostring(memberData.src) == tostring(src) then
+                    return true
+                end
+            end
+            return false
         end
-        return false
     end
 
     ---@return number
     public.getMembersCount = function()
-        local count = 0
-        for _, _ in pairs(private.members) do
-            count = count + 1
+        if private.isPulsarGroup and private.pulsarGroupData then
+            return 1 + #private.pulsarGroupData.Members
+        else
+            local count = 0
+            for _, _ in pairs(private.members) do
+                count = count + 1
+            end
+            return count
         end
-        return count
     end
 
     ---@param activity { activityId: string, activityName: string }
     public.setActivity = function(activity)
-        private.activity = activity
+        if private.isPulsarGroup and private.pulsarGroupData then
+            exports['pulsar-labor']:SetGroupActivity(private.pulsarGroupData.Creator.ID, activity)
+        else
+            private.activity = activity
+        end
     end
 
     public.getActivity = function()
-        return private.activity
+        if private.isPulsarGroup and private.pulsarGroupData then
+            return exports['pulsar-labor']:GetGroupActivity(private.pulsarGroupData.Creator.ID)
+        else
+            return private.activity
+        end
     end
 
     public.clearActivity = function()
-        private.activity = nil
+        if private.isPulsarGroup and private.pulsarGroupData then
+            exports['pulsar-labor']:ClearGroupActivity(private.pulsarGroupData.Creator.ID)
+        else
+            private.activity = nil
+        end
     end
 
     ---@param eventName string
     ---@param ... any
     public.triggerEvent = function(eventName, ...)
-        local payload = msgpack.pack_args(...)
-        local len = payload:len()
         local members = public.getMembers()
-        for _, memberData in pairs(members) do
-            ---@diagnostic disable-next-line: param-type-mismatch
-            if DoesPlayerExist(memberData.src) then
+        if next(members) then
+            local payload = msgpack.pack_args(...)
+            local len = payload:len()
+            for _, memberData in pairs(members) do
                 ---@diagnostic disable-next-line: param-type-mismatch
-                TriggerClientEventInternal(eventName, tonumber(memberData.src), payload, len)
+                if DoesPlayerExist(memberData.src) then
+                    ---@diagnostic disable-next-line: param-type-mismatch
+                    TriggerClientEventInternal(eventName, tonumber(memberData.src), payload, len)
+                end
             end
         end
     end
 
     ---@return boolean
     public.isAnyoneOnline = function()
-        local members = public.getMembers()
-        for _, memberData in pairs(members) do
-            if DoesPlayerExist(memberData.src) then
+        if private.isPulsarGroup and private.pulsarGroupData then
+            if DoesPlayerExist(private.pulsarGroupData.Creator.ID) then
                 return true
             end
+            for _, member in ipairs(private.pulsarGroupData.Members) do
+                if DoesPlayerExist(member.ID) then
+                    return true
+                end
+            end
+            return false
+        else
+            local members = public.getMembers()
+            for _, memberData in pairs(members) do
+                if DoesPlayerExist(memberData.src) then
+                    return true
+                end
+            end
+            return false
         end
-
-        return false
     end
 
     public.disband = function()
+        if private.isPulsarGroup then
+            -- Pulsar groups disbanded via pulsar-labor API
+            return
+        end
+
         if private.partyUuid then
             local party = GetParty(private.partyUuid)
             if party and party.destroy then
@@ -302,27 +408,43 @@ local function initGroupObject(data)
 
     ---@return boolean
     public.isInviting = function()
+        if private.isPulsarGroup and private.pulsarGroupData then
+            return exports['pulsar-labor']:IsGroupInviting(private.pulsarGroupData.Creator.ID)
+        end
         return private.isInviting
     end
 
     public.toggleInviting = function()
-        private.isInviting = not private.isInviting
+        if private.isPulsarGroup and private.pulsarGroupData then
+            exports['pulsar-labor']:ToggleGroupInviting(private.pulsarGroupData.Creator.ID)
+        else
+            private.isInviting = not private.isInviting
+        end
     end
 
     ---@param inviteUuid string
     ---@param targetSrc number | string
     public.addPendingInvite = function(inviteUuid, targetSrc)
+        if private.isPulsarGroup then
+            return
+        end
         private.invites[tostring(inviteUuid)] = tostring(targetSrc)
     end
 
     ---@param inviteUuid string
     public.removePendingInvite = function(inviteUuid)
+        if private.isPulsarGroup then
+            return
+        end
         private.invites[tostring(inviteUuid)] = nil
     end
 
     ---@param inviteUuid string
     ---@param targetSrc number | string
     public.isPendingInviteValid = function(inviteUuid, targetSrc)
+        if private.isPulsarGroup then
+            return false
+        end
         local storedTarget = private.invites[tostring(inviteUuid)]
         if not storedTarget then
             return false
@@ -333,6 +455,11 @@ local function initGroupObject(data)
 
     ---@param partyType UniQueueType
     public.createUniqueueParty = function(partyType)
+        if private.isPulsarGroup and private.pulsarGroupData then
+            exports['pulsar-labor']:CreateGroupUniqueueParty(private.pulsarGroupData.Creator.ID, partyType)
+            return
+        end
+
         if private.partyUuid then
             local party = GetParty(private.partyUuid)
             if party then
@@ -368,7 +495,9 @@ local function initGroupObject(data)
     ---@param queueName string
     ---@return { success: boolean, error: string? }
     public.enterUniqueue = function(queueName)
-        if not private.partyUuid then
+        local partyUuid = public.getPartyUuid()
+
+        if not partyUuid then
             return { success = false, error = locale("GROUP_HAS_NO_PARTY_IN_UNIQUEUE") }
         end
 
@@ -377,7 +506,7 @@ local function initGroupObject(data)
             return { success = false, error = locale("QUEUE_NOT_FOUND_2") }
         end
 
-        local party = GetParty(private.partyUuid)
+        local party = GetParty(partyUuid)
         if not party then
             return { success = false, error = locale("GROUP_HAS_NO_PARTY_IN_UNIQUEUE") }
         end
@@ -386,7 +515,11 @@ local function initGroupObject(data)
     end
 
     public.clearPartyUuid = function()
-        private.partyUuid = nil
+        if private.isPulsarGroup and private.pulsarGroupData then
+            exports['pulsar-labor']:ClearGroupPartyUuid(private.pulsarGroupData.Creator.ID)
+        else
+            private.partyUuid = nil
+        end
     end
 
     ---@param lockedState boolean
@@ -394,20 +527,34 @@ local function initGroupObject(data)
         if type(lockedState) ~= "boolean" then
             return
         end
-        if private.isLocked == lockedState then
-            return
-        end
-        private.isLocked = lockedState
 
-        for _, memberData in pairs(private.members) do
-            if DoesPlayerExist(memberData.src) then
-                bridge.fw.notify(memberData.src, "inform", private.isLocked and locale("GROUP_LOCKED") or locale("GROUP_UNLOCKED"))
+        if private.isPulsarGroup and private.pulsarGroupData then
+            exports['pulsar-labor']:SetGroupLocked(private.pulsarGroupData.Creator.ID, lockedState)
+            local members = public.getMembers()
+            for _, memberData in pairs(members) do
+                if DoesPlayerExist(memberData.src) then
+                    bridge.fw.notify(memberData.src, "inform", lockedState and locale("GROUP_LOCKED") or locale("GROUP_UNLOCKED"))
+                end
+            end
+        else
+            if private.isLocked == lockedState then
+                return
+            end
+            private.isLocked = lockedState
+
+            for _, memberData in pairs(private.members) do
+                if DoesPlayerExist(memberData.src) then
+                    bridge.fw.notify(memberData.src, "inform", private.isLocked and locale("GROUP_LOCKED") or locale("GROUP_UNLOCKED"))
+                end
             end
         end
     end
 
     ---@return boolean
     public.isLocked = function()
+        if private.isPulsarGroup and private.pulsarGroupData then
+            return exports['pulsar-labor']:IsGroupLocked(private.pulsarGroupData.Creator.ID)
+        end
         return private.isLocked
     end
 
@@ -424,28 +571,51 @@ Groups.GetFromMember = function(src)
         return nil
     end
 
-    local identifier = bridge.fw.getIdentifier(src)
-    if not identifier then
-        return nil
+    local pulsarGroups = exports['pulsar-labor']:GetGroups()
+    for _, pulsarGroup in ipairs(pulsarGroups) do
+        if pulsarGroup.Creator.ID == src then
+            return initGroupObject({
+                uuid = tostring(pulsarGroup.Creator.ID),
+                isPulsarGroup = true,
+                pulsarGroupData = pulsarGroup,
+            })
+        end
+        for _, member in ipairs(pulsarGroup.Members) do
+            if member.ID == src then
+                return initGroupObject({
+                    uuid = tostring(pulsarGroup.Creator.ID),
+                    isPulsarGroup = true,
+                    pulsarGroupData = pulsarGroup,
+                })
+            end
+        end
     end
-
-    local groupUuid = memberToGroupMap[tostring(identifier)]
-    if not groupUuid then
-        return nil
-    end
-
-    return groups[groupUuid]
+    return nil
 end
 
 ---@param identifier string
 ---@return Group?
 Groups.GetFromMemberByIdentifier = function(identifier)
-    local groupUuid = memberToGroupMap[tostring(identifier)]
-    if not groupUuid then
-        return nil
+    local pulsarGroups = exports['pulsar-labor']:GetGroups()
+    for _, pulsarGroup in ipairs(pulsarGroups) do
+        if pulsarGroup.Creator.SID == identifier then
+            return initGroupObject({
+                uuid = tostring(pulsarGroup.Creator.ID),
+                isPulsarGroup = true,
+                pulsarGroupData = pulsarGroup,
+            })
+        end
+        for _, member in ipairs(pulsarGroup.Members) do
+            if member.SID == identifier then
+                return initGroupObject({
+                    uuid = tostring(pulsarGroup.Creator.ID),
+                    isPulsarGroup = true,
+                    pulsarGroupData = pulsarGroup,
+                })
+            end
+        end
     end
-
-    return groups[groupUuid]
+    return nil
 end
 
 ---@param leaderSrc string | number
@@ -459,14 +629,25 @@ Groups.Create = function(leaderSrc)
         }
     end
 
-    local uuid = generateUUID()
-    local groupObject = initGroupObject({ uuid = uuid })
-    groupObject.setLeader(leaderSrc)
-    groupObject.addMember(leaderSrc)
-
+    local success = exports['pulsar-labor']:CreateWorkgroup(leaderSrc)
+    if success then
+        local pulsarGroups = exports['pulsar-labor']:GetGroups()
+        for _, pulsarGroup in ipairs(pulsarGroups) do
+            if pulsarGroup.Creator.ID == leaderSrc then
+                return {
+                    success = true,
+                    group = initGroupObject({
+                        uuid = tostring(pulsarGroup.Creator.ID),
+                        isPulsarGroup = true,
+                        pulsarGroupData = pulsarGroup,
+                    })
+                }
+            end
+        end
+    end
     return {
-        success = true,
-        group = groupObject
+        success = false,
+        error = locale("UNKNOWN_ERROR_ON_GROUP_CREATION")
     }
 end
 
@@ -476,6 +657,17 @@ Groups.GetGroupByPartyUuid = function(partyUuid)
     for _, group in pairs(groups) do
         if group.getPartyUuid() == partyUuid then
             return group
+        end
+    end
+
+    local pulsarGroups = exports['pulsar-labor']:GetGroups()
+    for _, pulsarGroup in ipairs(pulsarGroups) do
+        if pulsarGroup.PartyUuid == partyUuid then
+            return initGroupObject({
+                uuid = tostring(pulsarGroup.Creator.ID),
+                isPulsarGroup = true,
+                pulsarGroupData = pulsarGroup,
+            })
         end
     end
 
@@ -503,7 +695,17 @@ end)
 ---@param uuid string
 ---@return Group?
 exports("GetGroupByUuid", function(uuid)
-    return groups[uuid]
+    local pulsarGroups = exports['pulsar-labor']:GetGroups()
+    for _, pulsarGroup in ipairs(pulsarGroups) do
+        if tostring(pulsarGroup.Creator.ID) == tostring(uuid) then
+            return initGroupObject({
+                uuid = tostring(pulsarGroup.Creator.ID),
+                isPulsarGroup = true,
+                pulsarGroupData = pulsarGroup,
+            })
+        end
+    end
+    return nil
 end)
 
 ---@param partyUuid string
@@ -538,9 +740,9 @@ end)
 ---@param uuid string
 ---@return number | string[]
 exports("GetGroupPlayerIds", function(uuid)
-    local group = groups[uuid]
+    local group = exports['prp-bridge']:GetGroupByUuid(uuid)
     if not group then
-        return
+        return nil
     end
 
     return group.getMembersPlayerIds()
@@ -554,6 +756,7 @@ local function unloadPlayer(src)
     cachedPlayerIdentifiers[tostring(src)] = nil
     if not group then return end
 
+    -- removeMember returns false for pulsar groups, that's OK
     group.removeMember(src)
 end
 
@@ -595,49 +798,12 @@ end)
 
 RegisterNetEvent("prp-bridge:server:createGroup", function()
     local src = source
-
-    local result = Groups.Create(src)
-    if not result.success then
-        bridge.fw.notify(src, "error", result.error or locale("UNKNOWN_ERROR_ON_GROUP_CREATION"))
-        return
-    end
-
-    local group = result.group
-    if not group then
-        bridge.fw.notify(src, "error", locale("UNKNOWN_ERROR_ON_GROUP_CREATION"))
-        return
-    end
-
-    local members = group.getMembers()
-    local leader = group.getLeader()
-    local isLeader = leader and leader.identifier == bridge.fw.getIdentifier(src)
-
-    TriggerClientEvent("prp-bridge:client:openGroupMenu", src, {
-        uuid       = group.getUuid(),
-        members    = members,
-        isLeader   = isLeader,
-        leader     = leader,
-        activity   = group.getActivity(),
-    })
+    bridge.fw.notify(src, "info", "Create groups through the Phone Labor app")
 end)
 
 RegisterNetEvent("prp-bridge:server:toggleGroupsInviting", function()
     local src = source
-
-    local group = Groups.GetFromMember(src)
-    if not group then
-        bridge.fw.notify(src, "error", locale("NOT_IN_ANY_GROUP"))
-        return
-    end
-
-    if not group.isSrcALeader(src) then
-        bridge.fw.notify(src, "error", locale("ONLY_LEADER_CAN_TOGGLE_INVITING"))
-        return
-    end
-
-    group.toggleInviting()
-
-    TriggerClientEvent("prp-bridge:client:toggleGroupInviting", src, group.isInviting())
+    bridge.fw.notify(src, "info", "Use the Phone Labor app to manage group invites")
 end)
 
 RegisterNetEvent("prp-bridge:server:groupKick", function(targetSrc)
@@ -664,8 +830,15 @@ RegisterNetEvent("prp-bridge:server:groupKick", function(targetSrc)
         return
     end
 
-    group.removeMember(targetSrc)
-    bridge.fw.notify(src, "success", locale("PLAYER_KICKED_SUCCESSFULLY"))
+    local pulsarGroups = exports['pulsar-labor']:GetGroups()
+    for _, pulsarGroup in ipairs(pulsarGroups) do
+        if pulsarGroup.Creator.ID == src then
+            exports['pulsar-labor']:LeaveWorkgroup(pulsarGroup, targetSrc)
+            bridge.fw.notify(src, "success", locale("PLAYER_KICKED_SUCCESSFULLY"))
+            return
+        end
+    end
+    bridge.fw.notify(src, "error", locale("NOT_IN_ANY_GROUP"))
 end)
 
 RegisterNetEvent("prp-bridge:server:groupLeave", function()
@@ -677,14 +850,33 @@ RegisterNetEvent("prp-bridge:server:groupLeave", function()
         return
     end
 
-    if group.isSrcALeader(src) then
-        group.disband()
-        bridge.fw.notify(src, "success", locale("GROUP_DISBANDED_SUCCESSFULLY"))
-        return
+    local pulsarGroups = exports['pulsar-labor']:GetGroups()
+    local pulsarGroup = nil
+    for _, pg in ipairs(pulsarGroups) do
+        if pg.Creator.ID == src then
+            pulsarGroup = pg
+            break
+        elseif not pulsarGroup then
+            for _, member in ipairs(pg.Members) do
+                if member.ID == src then
+                    pulsarGroup = pg
+                    break
+                end
+            end
+        end
     end
 
-    group.removeMember(src)
-    bridge.fw.notify(src, "success", locale("LEFT_GROUP_SUCCESSFULLY"))
+    if pulsarGroup then
+        if pulsarGroup.Creator.ID == src then
+            exports['pulsar-labor']:DisbandWorkgroup(src, false)
+            bridge.fw.notify(src, "success", locale("GROUP_DISBANDED_SUCCESSFULLY"))
+        else
+            exports['pulsar-labor']:LeaveWorkgroup(pulsarGroup, src)
+            bridge.fw.notify(src, "success", locale("LEFT_GROUP_SUCCESSFULLY"))
+        end
+    else
+        bridge.fw.notify(src, "error", locale("NOT_IN_ANY_GROUP"))
+    end
 end)
 
 RegisterNetEvent("prp-bridge:server:inviteToGroup", function(targetSrc)
@@ -695,86 +887,40 @@ RegisterNetEvent("prp-bridge:server:inviteToGroup", function(targetSrc)
         return
     end
 
-    if not group.isInviting() then
-        bridge.fw.notify(src, "error", locale("GROUP_NOT_OPEN_FOR_INVITES"))
-        return
-    end
-
     if not group.isSrcALeader(src) then
         bridge.fw.notify(src, "error", locale("ONLY_LEADER_CAN_INVITE"))
         return
     end
 
-    local targetGroup = Groups.GetFromMember(targetSrc)
-    if targetGroup then
-        bridge.fw.notify(src, "error", locale("PLAYER_ALREADY_IN_GROUP"))
+    local pulsarGroups = exports['pulsar-labor']:GetGroups()
+    local pulsarGroup = nil
+    for _, pg in ipairs(pulsarGroups) do
+        if pg.Creator.ID == src then
+            pulsarGroup = pg
+            break
+        end
+    end
+
+    if not pulsarGroup then
+        bridge.fw.notify(src, "error", locale("NOT_IN_ANY_GROUP"))
         return
     end
 
-    local inviteUuid = generateUUID()
-
-    local inviter = group.getLeader()
-    local inviterName = inviter and inviter.characterName or locale("UNKNOWN")
-
-    group.addPendingInvite(inviteUuid, targetSrc)
-
-    TriggerClientEvent("prp-bridge:client:receiveGroupInvite", targetSrc, {
-        inviteUuid = inviteUuid,
-        inviterName = inviterName,
-        inviteSrc = src
-    })
+    local success = exports['pulsar-labor']:RequestWorkgroup(pulsarGroup, targetSrc)
+    if not success then
+        bridge.fw.notify(src, "error", "Unable to send invite")
+    end
 end)
 
 RegisterNetEvent("prp-bridge:server:acceptGroupInvite", function(inviteUuid, leaderSrc)
     local src = source
 
-    local group = Groups.GetFromMember(leaderSrc)
-    if not group then
-        bridge.fw.notify(src, "error", locale("GROUP_NO_LONGER_EXISTS"))
-        return
-    end
-
-    if not group.isPendingInviteValid(inviteUuid, src) then
-        bridge.fw.notify(src, "error", locale("INVALID_GROUP_INVITE"))
-        return
-    end
-
-    group.removePendingInvite(inviteUuid)
-
-    if group.isLocked() then
-        bridge.fw.notify(src, "error", locale("GROUP_IS_LOCKED"))
-        return
-    end
-
-    local leader = group.getLeader()
-    if not DoesPlayerExist(leader.src) then
-        return
-    end
-
-    local sourcePed = GetPlayerPed(src)
-    local leaderPed = GetPlayerPed(leader.src)
-    if not DoesEntityExist(sourcePed) or not DoesEntityExist(leaderPed) then
+    local success = exports['pulsar-labor']:JoinWorkgroup(leaderSrc, src)
+    if success then
+        bridge.fw.notify(src, "success", locale("JOINED_GROUP_SUCCESSFULLY"))
+    else
         bridge.fw.notify(src, "error", locale("FAILED_TO_JOIN_GROUP"))
-        return
     end
-
-    local sourceCoords = GetEntityCoords(sourcePed)
-    local leaderCoords = GetEntityCoords(leaderPed)
-    local distance = #(sourceCoords - leaderCoords)
-
-    if distance > 25.0 then
-        bridge.fw.notify(src, "error", locale("TOO_FAR_FROM_LEADER_TO_JOIN"))
-        return
-    end
-
-    local result = group.addMember(src)
-    if not result then
-        bridge.fw.notify(src, "error", locale("FAILED_TO_JOIN_GROUP"))
-        return
-    end
-
-    bridge.fw.notify(src, "success", locale("JOINED_GROUP_SUCCESSFULLY"))
-    bridge.fw.notify(leader.src, "success", locale("TARGET_PLAYER_JOINED_GROUP"))
 end)
 
 RegisterNetEvent("prp-bridge:server:declineGroupInvite", function(inviteUuid, leaderSrc)
@@ -799,13 +945,13 @@ RegisterNetEvent("prp-bridge:server:declineGroupInvite", function(inviteUuid, le
     bridge.fw.notify(leader.src, "error", locale("DECLINED_GROUP_INVITE"))
 end)
 
-if BridgeConfig.Group.CommandEnabled then
-    bridge.fw.registerCommand(
-        BridgeConfig.Group.CommandName,
-        "",
-        nil,
-        nil,
-    function(src, args)
-        TriggerClientEvent("prp-bridge:client:requestGroupData", src)
-    end)
-end
+-- if BridgeConfig.Group.CommandEnabled then -- Enable for Debuging ONLY
+--     bridge.fw.registerCommand(
+--         BridgeConfig.Group.CommandName,
+--         "",
+--         nil,
+--         nil,
+--     function(src, args)
+--         TriggerClientEvent("prp-bridge:client:requestGroupData", src)
+--     end)
+-- end

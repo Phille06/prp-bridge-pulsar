@@ -1,6 +1,8 @@
 # prp-bridge
 
-## For Framework Pulsar, i did not convert all functions via ox_lib, since this is a conversion of my old prp-bridge i bridged ox_lib due to the components. Look at my github for that. Soon there will be a branch to use the labor groups for instead of the /group command
+## For Framework Pulsar, i did not convert all functions via ox_lib, since this is a conversion of my old prp-bridge i bridged ox_lib due to the components. Look at my github for that.
+
+## This is the branch to use prp-bridge with the labor/jobs app in Pulsar Framework. Make sure to also use my fork of the labor or do the changes it did. https://github.com/Phille06/pulsar-labor-prp
 
 A framework bridge for FiveM resources in the Prodigy Studios ecosystem. Instead of writing support for multiple frameworks, inventories, or phone systems directly in each script, resources use prp-bridge to get a unified API that is independent of the underlying tech stack.
 

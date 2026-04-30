@@ -120,8 +120,8 @@ BridgeConfig.VehicleFuel = "pulsar-fuel"
 BridgeConfig.Minigames = "prp-minigames"
 
 ---@type { CommandEnabled: boolean, CommandName: string }
-BridgeConfig.Group = { -- TODO Make this work with Phone Labor App and sync
-    CommandEnabled = true,
+BridgeConfig.Group = {
+    CommandEnabled = false,
     CommandName = "group",
 }
 
