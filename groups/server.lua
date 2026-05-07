@@ -573,7 +573,7 @@ Groups.GetFromMember = function(src)
 
     local pulsarGroups = exports['pulsar-labor']:GetGroups()
     for _, pulsarGroup in ipairs(pulsarGroups) do
-        if pulsarGroup.Creator.ID == src then
+        if tostring(pulsarGroup.Creator.ID) == tostring(src) then
             return initGroupObject({
                 uuid = tostring(pulsarGroup.Creator.ID),
                 isPulsarGroup = true,
@@ -581,7 +581,7 @@ Groups.GetFromMember = function(src)
             })
         end
         for _, member in ipairs(pulsarGroup.Members) do
-            if member.ID == src then
+            if tostring(member.ID) == tostring(src) then
                 return initGroupObject({
                     uuid = tostring(pulsarGroup.Creator.ID),
                     isPulsarGroup = true,
@@ -598,7 +598,7 @@ end
 Groups.GetFromMemberByIdentifier = function(identifier)
     local pulsarGroups = exports['pulsar-labor']:GetGroups()
     for _, pulsarGroup in ipairs(pulsarGroups) do
-        if pulsarGroup.Creator.SID == identifier then
+        if tostring(pulsarGroup.Creator.SID) == tostring(identifier) then
             return initGroupObject({
                 uuid = tostring(pulsarGroup.Creator.ID),
                 isPulsarGroup = true,
@@ -606,7 +606,7 @@ Groups.GetFromMemberByIdentifier = function(identifier)
             })
         end
         for _, member in ipairs(pulsarGroup.Members) do
-            if member.SID == identifier then
+            if tostring(member.SID) == tostring(identifier) then
                 return initGroupObject({
                     uuid = tostring(pulsarGroup.Creator.ID),
                     isPulsarGroup = true,
@@ -631,16 +631,18 @@ Groups.Create = function(leaderSrc)
 
     local success = exports['pulsar-labor']:CreateWorkgroup(leaderSrc)
     if success then
+        Citizen.Wait(100)
         local pulsarGroups = exports['pulsar-labor']:GetGroups()
         for _, pulsarGroup in ipairs(pulsarGroups) do
-            if pulsarGroup.Creator.ID == leaderSrc then
+            if tostring(pulsarGroup.Creator.ID) == tostring(leaderSrc) then
+                local group = initGroupObject({
+                    uuid = tostring(pulsarGroup.Creator.ID),
+                    isPulsarGroup = true,
+                    pulsarGroupData = pulsarGroup,
+                })
                 return {
                     success = true,
-                    group = initGroupObject({
-                        uuid = tostring(pulsarGroup.Creator.ID),
-                        isPulsarGroup = true,
-                        pulsarGroupData = pulsarGroup,
-                    })
+                    group = group
                 }
             end
         end
@@ -785,7 +787,7 @@ RegisterNetEvent("prp-bridge:server:requestGroupData", function()
 
     local members = group.getMembers()
     local leader = group.getLeader()
-    local isLeader = leader and leader.identifier == bridge.fw.getIdentifier(src)
+    local isLeader = group.isSrcALeader(src)
 
     TriggerClientEvent("prp-bridge:client:openGroupMenu", src, {
         uuid       = group.getUuid(),
@@ -832,7 +834,7 @@ RegisterNetEvent("prp-bridge:server:groupKick", function(targetSrc)
 
     local pulsarGroups = exports['pulsar-labor']:GetGroups()
     for _, pulsarGroup in ipairs(pulsarGroups) do
-        if pulsarGroup.Creator.ID == src then
+        if tostring(pulsarGroup.Creator.ID) == tostring(src) then
             exports['pulsar-labor']:LeaveWorkgroup(pulsarGroup, targetSrc)
             bridge.fw.notify(src, "success", locale("PLAYER_KICKED_SUCCESSFULLY"))
             return
@@ -853,12 +855,12 @@ RegisterNetEvent("prp-bridge:server:groupLeave", function()
     local pulsarGroups = exports['pulsar-labor']:GetGroups()
     local pulsarGroup = nil
     for _, pg in ipairs(pulsarGroups) do
-        if pg.Creator.ID == src then
+        if tostring(pg.Creator.ID) == tostring(src) then
             pulsarGroup = pg
             break
         elseif not pulsarGroup then
             for _, member in ipairs(pg.Members) do
-                if member.ID == src then
+                if tostring(member.ID) == tostring(src) then
                     pulsarGroup = pg
                     break
                 end
@@ -867,7 +869,7 @@ RegisterNetEvent("prp-bridge:server:groupLeave", function()
     end
 
     if pulsarGroup then
-        if pulsarGroup.Creator.ID == src then
+        if tostring(pulsarGroup.Creator.ID) == tostring(src) then
             exports['pulsar-labor']:DisbandWorkgroup(src, false)
             bridge.fw.notify(src, "success", locale("GROUP_DISBANDED_SUCCESSFULLY"))
         else
@@ -895,7 +897,7 @@ RegisterNetEvent("prp-bridge:server:inviteToGroup", function(targetSrc)
     local pulsarGroups = exports['pulsar-labor']:GetGroups()
     local pulsarGroup = nil
     for _, pg in ipairs(pulsarGroups) do
-        if pg.Creator.ID == src then
+        if tostring(pg.Creator.ID) == tostring(src) then
             pulsarGroup = pg
             break
         end
