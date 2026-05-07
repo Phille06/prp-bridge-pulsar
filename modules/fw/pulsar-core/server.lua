@@ -167,9 +167,8 @@ end
 ---@param moneyType "cash" | "bank" | "crypto"
 ---@return number
 function fw.getMoney(src, moneyType)
-    local player = exports['pulsar-characters']:FetchBySID(tonumber(src))
-    if not player then return 0 end
-    return player:GetData(moneyType) or 0
+    local amount = exports['pulsar-finance']:WalletGet(source)
+    return amount or 0
 end
 
 ---@param src number | string
