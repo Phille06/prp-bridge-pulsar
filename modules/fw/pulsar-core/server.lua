@@ -88,7 +88,7 @@ end
 ---@param src string | number
 ---@return boolean
 function fw.isAdmin(src)
-    local player = exports['pulsar-characters']:FetchBySID(tonumber(src))
+    local player = exports['pulsar-core']:FetchSource(src)
     if not player then return false end
     return player.Permissions:IsAdmin()
 end
